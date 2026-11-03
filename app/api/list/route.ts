@@ -11,19 +11,17 @@ const folders: Record<string, string> = {
 
 export async function GET(request: Request) {
   const expected = process.env.DUFFLE_API_KEY;
-  const supplied = request.headers.get('authorization')?.replace(/^Bearer\\s+/i, '');
+  const header = request.headers.get('authorization') ?? '';
+  const supplied = header.startsWith('Bearer ') ? header.slice(7) : '';
 
   if (!expected || !supplied || supplied !== expected) {
     return Response.json({ error: 'Unauthorized.' }, { status: 401 });
   }
 
   const url = new URL(request.url);
-  const type = url.searchParams.get('type') ?? '';
-  const prefix = folders[type];
+  const prefix = folders[url.searchParams.get('type') ?? ''];
 
-  if (!prefix) {
-    return Response.json({ error: 'Unknown storage category.' }, { status: 400 });
-  }
+  if (!prefix) return Response.json({ error: 'Unknown storage category.' }, { status: 400 });
 
   try {
     const result = await list({ prefix, limit: 1000 });
