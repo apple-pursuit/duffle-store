@@ -16,6 +16,23 @@ function authorized(request: Request): boolean {
   return Boolean(expected && supplied && supplied === expected);
 }
 
+function getStatus() {
+  const apiKeyConfigured = Boolean(process.env.DUFFLE_API_KEY);
+  const blobTokenConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  const blobStoreIdConfigured = Boolean(process.env.BLOB_STORE_ID);
+  const blobConfigured = blobTokenConfigured || blobStoreIdConfigured;
+
+  return {
+    service: 'Duffle Store',
+    ready: apiKeyConfigured && blobConfigured,
+    apiKeyConfigured,
+    blobTokenConfigured,
+    blobStoreIdConfigured,
+    blobAuthMode: blobTokenConfigured ? 'read-write-token' : blobStoreIdConfigured ? 'oidc' : 'missing',
+    categories: ['movie', 'video', 'music', 'image'],
+  };
+}
+
 export async function GET(_request: Request, context: { params: Promise<{ type: string }> }) {
   const { type } = await context.params;
 
@@ -23,13 +40,7 @@ export async function GET(_request: Request, context: { params: Promise<{ type: 
     return new Response(null, { status: 405, headers: { Allow: 'POST' } });
   }
 
-  return Response.json({
-    service: 'Duffle Store',
-    ready: Boolean(process.env.DUFFLE_API_KEY && process.env.BLOB_READ_WRITE_TOKEN),
-    apiKeyConfigured: Boolean(process.env.DUFFLE_API_KEY),
-    blobTokenConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-    categories: ['movie', 'video', 'music', 'image'],
-  });
+  return Response.json(getStatus());
 }
 
 export async function POST(request: Request, context: { params: Promise<{ type: string }> }) {
@@ -55,7 +66,7 @@ export async function POST(request: Request, context: { params: Promise<{ type: 
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
-        const normalized = pathname.replace(/^\/+/, '');
+        const normalized = pathname.replace(/^\\/+/, '');
         if (!normalized.startsWith(category.folder + '/') || normalized.includes('..')) {
           throw new Error('Invalid upload path for this category.');
         }
