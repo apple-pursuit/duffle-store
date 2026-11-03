@@ -10,9 +10,9 @@ const folders: Record<string, string> = {
 };
 
 export async function GET(request: Request) {
-  const expected = process.env.DUFFLE_API_KEY;
+  const expected = (process.env.DUFFLE_API_KEY ?? '').trim();
   const header = request.headers.get('authorization') ?? '';
-  const supplied = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const supplied = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
 
   if (!expected || !supplied || supplied !== expected) {
     return Response.json({ error: 'Unauthorized.' }, { status: 401 });
