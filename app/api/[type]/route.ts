@@ -66,7 +66,7 @@ export async function POST(request: Request, context: { params: Promise<{ type: 
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
-        const normalized = pathname.replace(/^\\/+/, '');
+        const normalized = pathname.replace(/^\/+/, '');
         if (!normalized.startsWith(category.folder + '/') || normalized.includes('..')) {
           throw new Error('Invalid upload path for this category.');
         }
