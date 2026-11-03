@@ -1,3 +1,4 @@
+import { list } from '@vercel/blob';
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 
 export const runtime = 'nodejs';
@@ -16,19 +17,30 @@ function authorized(request: Request): boolean {
   return Boolean(expected && supplied && supplied === expected);
 }
 
-function getStatus() {
+async function getStatus() {
   const apiKeyConfigured = Boolean(process.env.DUFFLE_API_KEY);
   const blobTokenConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
   const blobStoreIdConfigured = Boolean(process.env.BLOB_STORE_ID);
-  const blobConfigured = blobTokenConfigured || blobStoreIdConfigured;
+  const blobAuthMode = blobTokenConfigured ? 'read-write-token' : blobStoreIdConfigured ? 'oidc' : 'missing';
+
+  let blobConnectionReady = false;
+  if (blobAuthMode !== 'missing') {
+    try {
+      await list({ limit: 1 });
+      blobConnectionReady = true;
+    } catch {
+      blobConnectionReady = false;
+    }
+  }
 
   return {
     service: 'Duffle Store',
-    ready: apiKeyConfigured && blobConfigured,
+    ready: apiKeyConfigured && blobConnectionReady,
     apiKeyConfigured,
     blobTokenConfigured,
     blobStoreIdConfigured,
-    blobAuthMode: blobTokenConfigured ? 'read-write-token' : blobStoreIdConfigured ? 'oidc' : 'missing',
+    blobAuthMode,
+    blobConnectionReady,
     categories: ['movie', 'video', 'music', 'image'],
   };
 }
@@ -40,7 +52,7 @@ export async function GET(_request: Request, context: { params: Promise<{ type: 
     return new Response(null, { status: 405, headers: { Allow: 'POST' } });
   }
 
-  return Response.json(getStatus());
+  return Response.json(await getStatus());
 }
 
 export async function POST(request: Request, context: { params: Promise<{ type: string }> }) {
