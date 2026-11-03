@@ -39,7 +39,7 @@ export async function POST(request: Request, context: { params: Promise<{ type: 
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
-        const normalized = pathname.replace(/^\/+/, '');
+        const normalized = pathname.replace(/^\\/+/, '');
         if (!normalized.startsWith(`${category.folder}/`) || normalized.includes('..')) {
           throw new Error('Invalid upload path for this category.');
         }
@@ -54,7 +54,6 @@ export async function POST(request: Request, context: { params: Promise<{ type: 
         console.info('Duffle Store upload completed', {
           pathname: blob.pathname,
           contentType: blob.contentType,
-          size: blob.size,
           url: blob.url,
         });
       },
