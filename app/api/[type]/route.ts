@@ -16,6 +16,22 @@ function authorized(request: Request): boolean {
   return Boolean(expected && supplied && supplied === expected);
 }
 
+export async function GET(_request: Request, context: { params: Promise<{ type: string }> }) {
+  const { type } = await context.params;
+
+  if (type !== 'status') {
+    return new Response(null, { status: 405, headers: { Allow: 'POST' } });
+  }
+
+  return Response.json({
+    service: 'Duffle Store',
+    ready: Boolean(process.env.DUFFLE_API_KEY && process.env.BLOB_READ_WRITE_TOKEN),
+    apiKeyConfigured: Boolean(process.env.DUFFLE_API_KEY),
+    blobTokenConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    categories: ['movie', 'video', 'music', 'image'],
+  });
+}
+
 export async function POST(request: Request, context: { params: Promise<{ type: string }> }) {
   const { type } = await context.params;
   const category = categories[type];
@@ -39,7 +55,7 @@ export async function POST(request: Request, context: { params: Promise<{ type: 
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
-        const normalized = pathname.replace(/^\/+/, '');
+        const normalized = pathname.replace(/^\\/+/, '');
         if (!normalized.startsWith(category.folder + '/') || normalized.includes('..')) {
           throw new Error('Invalid upload path for this category.');
         }
